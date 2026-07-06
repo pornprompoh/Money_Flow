@@ -5,6 +5,7 @@ import QuickAmount from '@/components/features/QuickAmount';
 import CategorySelector from '@/components/features/CategorySelector';
 import { supabase } from '@/lib/supabase';
 import Button from '@/components/ui/Button';
+import toast from 'react-hot-toast';
 
 export default function Home() {
   const { amount, type, categoryId, setType, clearAmount, setAmount } = useTransactionStore();
@@ -32,19 +33,19 @@ export default function Home() {
 
       if (error) throw error;
 
-      alert(`บันทึก${type === 'expense' ? 'รายจ่าย' : 'รายรับ'} ${amount} บาท เรียบร้อย!`);
+      toast.success(`บันทึก${type === 'expense' ? 'รายจ่าย' : 'รายรับ'} ${amount} บาท เรียบร้อย!`);
       clearAmount();
 
     } catch (error: any) {
       console.error('Error saving:', error);
-      alert(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <main className="flex flex-col min-h-screen max-w-md mx-auto bg-white p-6 pb-24">
+    <main className="flex flex-col min-h-screen max-w-md mx-auto bg-white p-6 pb-24 relative">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-xl font-bold text-gray-800">Money Flow</h1>
         <div className="flex bg-gray-100 p-1 rounded-xl">

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { User, Settings, Wallet, Bell, CircleHelp, LogOut } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
   const [userEmail, setUserEmail] = useState<string>('กำลังโหลด...');
@@ -26,7 +27,7 @@ export default function ProfilePage() {
       router.replace('/login'); 
     } catch (error) {
       console.error('Error logging out:', error);
-      alert('เกิดข้อผิดพลาดในการออกจากระบบ');
+      toast.error('เกิดข้อผิดพลาดในการออกจากระบบ');
     }
   };
 

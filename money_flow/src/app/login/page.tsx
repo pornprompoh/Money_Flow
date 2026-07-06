@@ -5,36 +5,36 @@ import { useRouter } from 'next/navigation';
 import { Wallet } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const router = useRouter();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setErrorMsg(null);
 
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        toast.success('เข้าสู่ระบบสำเร็จ!');
         router.push('/');
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
+        toast.success('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
         setIsLogin(true);
         setPassword('');
       }
     } catch (error: any) {
       console.error('Auth error:', error);
-      setErrorMsg(error.message || 'เกิดข้อผิดพลาดในการยืนยันตัวตน');
+      toast.error(error.message || 'เกิดข้อผิดพลาดในการยืนยันตัวตน');
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +55,7 @@ export default function LoginPage() {
         <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
           <button
             type="button"
-            onClick={() => { setIsLogin(true); setErrorMsg(null); }}
+            onClick={() => setIsLogin(true)}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
               isLogin ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
             }`}
@@ -64,7 +64,7 @@ export default function LoginPage() {
           </button>
           <button
             type="button"
-            onClick={() => { setIsLogin(false); setErrorMsg(null); }}
+            onClick={() => setIsLogin(false)}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
               !isLogin ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
             }`}
@@ -91,10 +91,6 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
           />
-
-          {errorMsg && (
-            <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">{errorMsg}</p>
-          )}
 
           <div className="pt-2">
             <Button type="submit" isLoading={isLoading} loadingText="กำลังประมวลผล...">

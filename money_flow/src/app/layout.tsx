@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Prompt } from 'next/font/google';
 import './globals.css';
 import BottomNav from '@/components/layout/BottomNav';
-import AuthGuard from '@/components/layout/AuthGuard'; // <- Import เพิ่ม
+import AuthGuard from '@/components/layout/AuthGuard';
+import { Toaster } from 'react-hot-toast';
 
-const inter = Inter({ subsets: ['latin', 'thai'] });
+const prompt = Prompt({ 
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['latin', 'thai'], // Prompt รองรับ 'thai' แน่นอน
+});
 
 export const metadata: Metadata = {
   title: 'Money Flow',
@@ -17,14 +21,35 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th" suppressHydrationWarning>
-      <body className={`${inter.className} bg-gray-50`} suppressHydrationWarning>
-        <div className="max-w-md mx-auto min-h-screen bg-white relative">
-          {/* ครอบเนื้อหาทั้งหมดด้วย AuthGuard */}
+    // เติม suppressHydrationWarning ตรงนี้
+    <html lang="th" suppressHydrationWarning> 
+      {/* และเติม suppressHydrationWarning ตรงนี้ด้วยครับ */}
+      <body className={`${prompt.className} bg-gray-50`} suppressHydrationWarning>
+        <div className="max-w-md mx-auto min-h-screen bg-white relative shadow-sm overflow-hidden">
           <AuthGuard>
             {children}
             <BottomNav />
           </AuthGuard>
+          
+          <Toaster 
+            position="top-center"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#333',
+                color: '#fff',
+                borderRadius: '16px',
+                padding: '12px 24px',
+                fontWeight: '500',
+              },
+              success: {
+                style: { background: '#10B981' }, 
+              },
+              error: {
+                style: { background: '#EF4444' }, 
+              },
+            }}
+          />
         </div>
       </body>
     </html>

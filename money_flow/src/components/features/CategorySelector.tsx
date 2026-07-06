@@ -26,12 +26,16 @@ const getIcon = (iconName: string) => {
 export default function CategorySelector() {
   const { type, categoryId, setCategory } = useTransactionStore();
   const [categories, setCategories] = useState<Category[]>([]);
-  const router = useRouter(); // เพิ่ม useRouter สำหรับนำทาง
+  const router = useRouter();
 
   useEffect(() => {
     const fetchCategories = async () => {
-      // ดึงหมวดหมู่ทั้งหมดของ User มาแสดง (ไม่แยก type แล้ว)
-      const { data, error } = await supabase.from('categories').select('*');
+      // 🛠️ แก้ไข: ดึงเฉพาะหมวดหมู่ที่ใช้จริงเท่านั้น (is_active = true)
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true);
+        
       if (data && !error) {
         setCategories(data);
       }
@@ -60,9 +64,8 @@ export default function CategorySelector() {
           </button>
         ))}
         
-        {/* ปุ่มเพิ่ม กดแล้ววิ่งไปหน้า Budget */}
         <button 
-          onClick={() => router.push('/budget?add=true')}
+          onClick={() => router.push('/budget?add=true')} 
           className="flex-shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 active:bg-gray-50 transition-all snap-start"
         >
            <Plus size={24} className="mb-1" />

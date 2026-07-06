@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import dayjs from 'dayjs';
-import { Coffee, Utensils, Bus, ShoppingBag, Briefcase, PiggyBank, CircleHelp, Plus, X, Trash2, Edit2, Check } from 'lucide-react'; // นำเข้าไอคอนเพิ่ม
+import { Coffee, Utensils, Bus, ShoppingBag, Briefcase, PiggyBank, CircleHelp, Plus, X, Trash2, Edit2, Check } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import toast from 'react-hot-toast';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
-// ... (Interface และ getIcon ไว้เหมือนเดิม) ...
 interface CategoryProgress {
   id: string;
   name: string;
@@ -31,15 +32,14 @@ const getIcon = (iconName: string) => {
 export default function BudgetPage() {
   const [categories, setCategories] = useState<CategoryProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatIcon, setNewCatIcon] = useState('Utensils');
   const [isSaving, setIsSaving] = useState(false);
-
-  // State สำหรับเปิดโหมดลบหมวดหมู่
   const [isEditMode, setIsEditMode] = useState(false); 
+
+  const [hideTarget, setHideTarget] = useState<{id: string, name: string} | null>(null);
 
   useEffect(() => {
     fetchBudgetData();
@@ -52,11 +52,13 @@ export default function BudgetPage() {
   }, []);
 
   const fetchBudgetData = async () => {
-    // ... (ฟังก์ชัน fetchBudgetData โค้ดคงเดิม) ...
     setIsLoading(true);
-    setErrorMsg(null);
     try {
-      const { data: categoryData, error: categoryError } = await supabase.from('categories').select('*');
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true);
+
       if (categoryError) throw categoryError;
 
       const startOfMonth = dayjs().startOf('month').toISOString();
@@ -93,14 +95,13 @@ export default function BudgetPage() {
       setCategories(calculatedCategories);
     } catch (error: any) {
       console.error('Error fetching budget data:', error);
-      setErrorMsg(error.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูลงบประมาณ');
+      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลงบประมาณ');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleAddCategory = async (e: React.FormEvent) => {
-    // ... (ฟังก์ชัน handleAddCategory โค้ดคงเดิม) ...
     e.preventDefault();
     if (!newCatName) return;
     setIsSaving(true);
@@ -118,32 +119,36 @@ export default function BudgetPage() {
 
       if (error) throw error;
 
+      toast.success('สร้างซองเงินสำเร็จ!');
       setShowAddForm(false);
       setNewCatName('');
       setNewCatIcon('Utensils');
       fetchBudgetData();
     } catch (error: any) {
       console.error('Error adding category:', error);
-      alert(error.message || 'เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่');
+      toast.error(error.message || 'เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // ฟังก์ชันลบหมวดหมู่
-  const handleDeleteCategory = async (id: string, name: string) => {
-    const isConfirm = window.confirm(`ลบหมวดหมู่ "${name}"?\n(ประวัติการใช้จ่ายจะไม่หายไป แต่จะกลายเป็น "ไม่ระบุหมวดหมู่")`);
-    if (!isConfirm) return;
-
+  const executeHide = async () => {
+    if (!hideTarget) return;
     try {
-      const { error } = await supabase.from('categories').delete().eq('id', id);
+      const { error } = await supabase
+        .from('categories')
+        .update({ is_active: false })
+        .eq('id', hideTarget.id);
+
       if (error) throw error;
       
-      // ดึงข้อมูลใหม่เพื่อให้อัปเดตทั้งรายรับรายจ่าย
+      toast.success(`ซ่อนซอง "${hideTarget.name}" แล้ว`);
       fetchBudgetData(); 
     } catch (error) {
-      console.error('Error deleting category:', error);
-      alert('เกิดข้อผิดพลาดในการลบหมวดหมู่');
+      console.error('Error hiding category:', error);
+      toast.error('เกิดข้อผิดพลาดในการซ่อนหมวดหมู่');
+    } finally {
+      setHideTarget(null);
     }
   };
 
@@ -153,11 +158,19 @@ export default function BudgetPage() {
 
   return (
     <div className="p-6 pb-24 max-w-md mx-auto">
+      <ConfirmModal 
+        isOpen={!!hideTarget}
+        title={`ซ่อน "${hideTarget?.name}"?`}
+        message="ประวัติการใช้จ่ายในอดีตจะยังคงอยู่ครบถ้วน\nแต่หมวดหมู่นี้จะไม่แสดงในหน้าจอสำหรับจดบันทึกอีกต่อไป"
+        onConfirm={executeHide}
+        onCancel={() => setHideTarget(null)}
+        confirmText="ซ่อนหมวดหมู่"
+      />
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดสรรเงินเดือนนี้</h1>
         
         <div className="flex gap-2">
-          {/* ปุ่มสลับโหมดจัดการ */}
           <button 
             onClick={() => setIsEditMode(!isEditMode)}
             className={`p-2 rounded-xl transition-colors flex items-center justify-center
@@ -167,7 +180,6 @@ export default function BudgetPage() {
             {isEditMode ? <Check size={24} /> : <Edit2 size={24} />}
           </button>
 
-          {/* ปุ่มเพิ่ม (ซ่อนตอนอยู่ในโหมดลบ) */}
           {!isEditMode && (
             <button 
               onClick={() => setShowAddForm(true)}
@@ -179,7 +191,6 @@ export default function BudgetPage() {
         </div>
       </div>
 
-      {/* ... (ส่วนฟอร์มเพิ่มหมวดหมู่และแสดง Error คงเดิม) ... */}
       {showAddForm && (
         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-lg mb-6 relative">
           <button 
@@ -226,13 +237,6 @@ export default function BudgetPage() {
         </div>
       )}
 
-      {errorMsg && (
-        <div className="p-4 bg-red-50 text-red-500 rounded-xl mb-4 text-center">
-          <p>{errorMsg}</p>
-          <button onClick={fetchBudgetData} className="mt-2 text-sm font-bold underline">ลองใหม่อีกครั้ง</button>
-        </div>
-      )}
-
       <div className="space-y-6">
         {categories.map((category) => {
           const percentUsed = category.allocated_amount > 0 
@@ -251,10 +255,9 @@ export default function BudgetPage() {
             <div key={category.id} className={`bg-white border rounded-2xl p-4 shadow-sm transition-all ${isEditMode ? 'border-red-200' : 'border-gray-100'}`}>
               <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-3">
-                  {/* แสดงปุ่มถังขยะแทนไอคอนหมวดหมู่ หากเปิดโหมดจัดการ */}
                   {isEditMode ? (
                     <button 
-                      onClick={() => handleDeleteCategory(category.id, category.name)}
+                      onClick={() => setHideTarget({ id: category.id, name: category.name })}
                       className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors"
                     >
                       <Trash2 size={24} />
@@ -274,7 +277,6 @@ export default function BudgetPage() {
                   </div>
                 </div>
                 
-                {/* ซ่อนตัวเลขเงินคงเหลือตอนอยู่ในโหมดลบ เพื่อไม่ให้ตาลาย */}
                 {!isEditMode && (
                   <div className="text-right">
                     {hasBudget || isOverBudget ? (
