@@ -13,6 +13,7 @@ const prompt = Prompt({
 export const metadata: Metadata = {
   title: 'Money Flow',
   description: 'Fastest way to track your expenses',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
