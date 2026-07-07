@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface TransactionHistory {
-  id: string; amount: number; type: 'income' | 'expense'; created_at: string;
+  id: string; amount: number; type: 'income' | 'expense'; created_at: string; note: string; // <-- เติมตรงนี้
   categories: { name: string; icon_name: string; } | null;
 }
 
@@ -30,7 +30,7 @@ export default function HistoryPage() {
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select(`id, amount, type, created_at, categories ( name, icon_name )`)
+        .select(`id, amount, type, created_at, note, categories ( name, icon_name )`) // <-- เติม note,
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -63,18 +63,26 @@ export default function HistoryPage() {
       <ConfirmModal isOpen={!!deleteTarget} title="ลบรายการ" message="คุณแน่ใจหรือไม่ที่จะลบรายการนี้?" onConfirm={executeDelete} onCancel={() => setDeleteTarget(null)} confirmText="ลบทิ้ง" />
       <h1 className="text-2xl font-bold text-gray-800 mb-6">ประวัติทั้งหมด</h1>
       <div className="space-y-4">
-        {transactions.map((t) => (
+{transactions.map((t) => (
           <div key={t.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex justify-between items-center group">
-            <div className="flex items-center gap-4 flex-1">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
               <div className={`p-3 rounded-xl flex items-center justify-center text-white flex-shrink-0 ${t.type === 'expense' ? 'bg-red-400' : 'bg-emerald-400'}`}>
                 {getIcon(t.categories?.icon_name)}
               </div>
               <div className="truncate pr-2">
                 <h3 className="font-semibold text-gray-800 truncate">{t.categories?.name || 'ไม่ระบุหมวดหมู่'}</h3>
-                <p className="text-xs text-gray-400">{dayjs(t.created_at).format('DD/MM/YYYY • HH:mm')}</p>
+                <p className="text-xs text-gray-400 truncate mt-0.5">
+                  {dayjs(t.created_at).format('DD/MM/YYYY • HH:mm')}
+                  {/* 🌟 แสดงโน้ตต่อท้ายเวลาแบบเนียนๆ */}
+                  {t.note && (
+                    <span className="text-gray-500 font-medium ml-1.5">
+                      | {t.note}
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-shrink-0">
               <p className={`font-bold text-lg whitespace-nowrap ${t.type === 'expense' ? 'text-red-500' : 'text-emerald-500'}`}>
                 {t.type === 'expense' ? '-' : '+'}฿{Number(t.amount).toLocaleString()}
               </p>

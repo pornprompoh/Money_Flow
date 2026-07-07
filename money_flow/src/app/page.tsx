@@ -72,7 +72,7 @@ export default function Home() {
               ${type === 'expense' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}
             `}
           >
-            <TrendingDown size={16} /> จ่าย
+            <TrendingDown size={16} /> รายจ่าย
           </button>
           <button
             onClick={() => setType('income')}
@@ -80,7 +80,7 @@ export default function Home() {
               ${type === 'income' ? 'bg-white text-emerald-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}
             `}
           >
-            <TrendingUp size={16} /> รับ
+            <TrendingUp size={16} /> รายรับ
           </button>
         </div>
       </div>
