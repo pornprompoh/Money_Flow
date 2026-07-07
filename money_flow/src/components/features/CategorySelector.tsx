@@ -9,6 +9,7 @@ interface Category {
   id: string;
   name: string;
   icon_name: string;
+  is_savings_target: boolean; // เพิ่มฟิลด์นี้เข้ามารับค่า
 }
 
 const getIcon = (iconName: string) => {
@@ -30,7 +31,6 @@ export default function CategorySelector() {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      // 🛠️ แก้ไข: ดึงเฉพาะหมวดหมู่ที่ใช้จริงเท่านั้น (is_active = true)
       const { data, error } = await supabase
         .from('categories')
         .select('*')
@@ -43,10 +43,18 @@ export default function CategorySelector() {
     fetchCategories();
   }, []);
 
+  // 🛠️ แก้ไข: กรองหมวดหมู่ตามประเภท รายรับ/รายจ่าย
+  const displayCategories = categories.filter((cat) => {
+    if (type === 'expense') {
+      return !cat.is_savings_target; // ถ้ารายจ่าย: ไม่แสดงซองเงินเก็บ
+    }
+    return true; // ถ้ารายรับ: แสดงทั้งหมด (รวมถึงซองเงินเก็บ)
+  });
+
   return (
     <div className="w-full mt-6">
       <div className="flex overflow-x-auto gap-3 pb-2 snap-x hide-scrollbar">
-        {categories.map((cat) => (
+        {displayCategories.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setCategory(cat.id)}
