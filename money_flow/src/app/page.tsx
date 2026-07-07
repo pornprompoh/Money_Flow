@@ -1,108 +1,158 @@
 'use client';
 import { useState } from 'react';
-import { useTransactionStore } from '@/store/useTransactionStore';
-import QuickAmount from '@/components/features/QuickAmount';
-import CategorySelector from '@/components/features/CategorySelector';
 import { supabase } from '@/lib/supabase';
-import Button from '@/components/ui/Button';
+import { useTransactionStore } from '@/store/useTransactionStore';
+import CategorySelector from '@/components/features/CategorySelector';
+import { Pencil, TrendingDown, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Button from '@/components/ui/Button';
 
 export default function Home() {
-  const { amount, type, categoryId, setType, clearAmount, setAmount } = useTransactionStore();
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const isReadyToSave = amount > 0 && categoryId !== null;
+  const { amount, type, categoryId, note, setAmount, setType, setNote, reset } = useTransactionStore();
+  const [isSaving, setIsSaving] = useState(false);
+
+  // 🔹 ฟังก์ชันสำหรับปุ่มบวกเลขเร็ว (แบงก์/เหรียญ)
+  const handleAddAmount = (value: number) => {
+    const currentVal = Number(amount) || 0;
+    setAmount((currentVal + value).toString());
+  };
+
+  // 🔹 ฟังก์ชันสำหรับปุ่มล้างตัวเลข
+  const handleClear = () => {
+    setAmount('0');
+  };
 
   const handleSave = async () => {
-    if (!isReadyToSave) return;
-    setIsLoading(true);
+    if (!amount || amount === '0' || Number(amount) <= 0) {
+      toast.error('กรุณาระบุจำนวนเงิน');
+      return;
+    }
+    if (!categoryId) {
+      toast.error('กรุณาเลือกหมวดหมู่');
+      return;
+    }
 
+    setIsSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('กรุณาเข้าสู่ระบบก่อนบันทึกข้อมูล');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error('กรุณาเข้าสู่ระบบใหม่');
 
-      const { error } = await supabase
-        .from('transactions')
-        .insert([{
-          user_id: user.id,
-          amount: amount,
-          type: type,
-          category_id: categoryId,
-          note: '', 
-        }]);
+      const { error } = await supabase.from('transactions').insert([{
+        user_id: user.id,
+        amount: Number(amount),
+        type,
+        category_id: categoryId,
+        note: note.trim()
+      }]);
 
       if (error) throw error;
 
-      toast.success(`บันทึก${type === 'expense' ? 'รายจ่าย' : 'รายรับ'} ${amount} บาท เรียบร้อย!`);
-      clearAmount();
+      toast.success('บันทึกรายการสำเร็จ!');
+      reset(); 
 
     } catch (error: any) {
-      console.error('Error saving:', error);
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      console.error('Save error:', error);
+      toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึก');
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
   return (
-    <main className="flex flex-col min-h-screen max-w-md mx-auto bg-white p-6 pb-24 relative">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-xl font-bold text-gray-800">Money Flow</h1>
+    <div className="p-6 pb-24 max-w-md mx-auto min-h-screen flex flex-col">
+      
+      {/* 🌟 1. ส่วนหัวหน้าเว็บ + สวิตช์เลือก รายรับ/รายจ่าย (รวบไว้บรรทัดเดียวกัน) */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">จดบันทึก</h1>
+        
         <div className="flex bg-gray-100 p-1 rounded-xl">
           <button
             onClick={() => setType('expense')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              type === 'expense' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500'
-            }`}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-bold transition-all
+              ${type === 'expense' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}
+            `}
           >
-            รายจ่าย
+            <TrendingDown size={16} /> จ่าย
           </button>
           <button
             onClick={() => setType('income')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              type === 'income' ? 'bg-white text-emerald-500 shadow-sm' : 'text-gray-500'
-            }`}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-bold transition-all
+              ${type === 'income' ? 'bg-white text-emerald-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}
+            `}
           >
-            รายรับ
+            <TrendingUp size={16} /> รับ
           </button>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center mb-8 w-full">
-        <span className="text-gray-400 text-sm mb-2">จำนวนเงิน</span>
-        <div className="flex items-center justify-center text-6xl font-bold tracking-tight text-gray-900 w-full px-4">
-          <span className="text-3xl mr-2 text-gray-400">฿</span>
+      {/* 🔹 2. ส่วนจำนวนเงิน (เป็น input เพื่อให้จิ้มพิมพ์เองได้) */}
+      <div className="text-center mb-4">
+        <p className="text-gray-400 text-sm font-medium mb-1">จำนวนเงิน</p>
+        <div className="flex items-center justify-center h-14">
+          <span className={`text-4xl font-bold mr-1 ${type === 'expense' ? 'text-red-500' : 'text-emerald-500'}`}>
+            ฿
+          </span>
           <input
-            type="text" 
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={amount === 0 ? '' : amount.toLocaleString()} 
-            onChange={(e) => {
-              const val = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
-              setAmount(isNaN(val) ? 0 : val);
-            }}
+            type="number"
+            value={amount === '0' ? '' : amount}
+            onChange={(e) => setAmount(e.target.value)}
             placeholder="0"
-            className="bg-transparent border-none focus:outline-none focus:ring-0 text-center w-full max-w-[250px] text-gray-900 p-0 m-0 placeholder-gray-300"
+            className={`text-5xl font-bold bg-transparent border-none outline-none w-full text-center p-0 placeholder-gray-300
+              ${type === 'expense' ? 'text-red-500' : 'text-emerald-500'}
+            `}
+            style={{ maxWidth: '200px' }}
           />
         </div>
       </div>
 
-      <div className="mt-auto">
-        <QuickAmount />
-        <CategorySelector />
-        
-        <div className="mt-6">
-          <Button 
-            onClick={handleSave} 
-            disabled={!isReadyToSave} 
-            isLoading={isLoading}
-            variant={type === 'expense' ? 'expense' : 'income'}
-            loadingText="กำลังบันทึก..."
+      {/* 🔹 3. แผงปุ่มบวกเงินด่วน (Quick Add) */}
+      <div className="grid grid-cols-3 gap-2.5 mb-3">
+        {[1, 2, 5, 10, 20, 50, 100, 500, 1000].map((num) => (
+          <button
+            key={num}
+            onClick={() => handleAddAmount(num)}
+            className="bg-gray-50 py-3.5 rounded-xl text-lg font-bold text-gray-700 shadow-sm border border-gray-100 hover:bg-gray-100 active:bg-blue-50 active:text-blue-600 active:scale-95 transition-all"
           >
-            บันทึก{type === 'expense' ? 'รายจ่าย' : 'รายรับ'}
-          </Button>
-        </div>
+            +{num}
+          </button>
+        ))}
       </div>
-    </main>
+      <button
+        onClick={handleClear}
+        className="w-full bg-red-50/50 py-3 rounded-xl text-red-500 font-bold shadow-sm border border-red-50 hover:bg-red-50 active:bg-red-100 active:scale-[0.98] transition-all mb-6"
+      >
+        ล้างตัวเลข (Clear)
+      </button>
+
+      {/* 🔹 4. ส่วนเลือกหมวดหมู่ */}
+      <div className="mb-4">
+        <h3 className="text-sm font-bold text-gray-500 mb-2 px-1">เลือกหมวดหมู่</h3>
+        <CategorySelector />
+      </div>
+
+      {/* 🔹 5. ส่วนโน้ตย่อ + ปุ่มบันทึก (ดันให้อยู่ล่างสุดเสมอ) */}
+      <div className="mt-auto space-y-4">
+        <div className="bg-white rounded-2xl flex items-center px-4 py-3.5 border border-gray-200 focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-sm">
+          <Pencil size={18} className="text-gray-400 mr-3 flex-shrink-0" />
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="เพิ่มโน้ตช่วยจำ (ไม่บังคับ)..."
+            className="bg-transparent border-none outline-none w-full text-sm text-gray-700 placeholder-gray-400"
+          />
+        </div>
+
+        <Button 
+          onClick={handleSave} 
+          isLoading={isSaving} 
+          loadingText="กำลังบันทึก..."
+          className="w-full py-4 text-lg rounded-2xl shadow-lg shadow-blue-200"
+        >
+          บันทึกรายการ
+        </Button>
+      </div>
+
+    </div>
   );
 }
