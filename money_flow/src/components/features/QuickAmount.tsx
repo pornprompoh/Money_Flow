@@ -1,38 +1,36 @@
 'use client';
 import { useTransactionStore } from '@/store/useTransactionStore';
 
-// จำลองค่าเงินตามเหรียญและธนบัตร
-const AMOUNTS = [
-  { label: '+1', value: 1 },
-  { label: '+2', value: 2 },
-  { label: '+5', value: 5 },
-  { label: '+10', value: 10 },
-  { label: '+20', value: 20 },
-  { label: '+50', value: 50 },
-  { label: '+100', value: 100 },
-  { label: '+500', value: 500 },
-  { label: '+1000', value: 1000 },
-];
-
 export default function QuickAmount() {
-  const { addAmount, clearAmount } = useTransactionStore();
+  const { amount, setAmount } = useTransactionStore();
+
+  const handleAddAmount = (value: number) => {
+    const currentVal = Number(amount) || 0;
+    setAmount((currentVal + value).toString());
+  };
+
+  const handleClear = () => {
+    setAmount('0');
+  };
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-3 gap-3">
-        {AMOUNTS.map((item) => (
+      <div className="grid grid-cols-3 gap-2.5 mb-3">
+        {[1, 2, 5, 10, 20, 50, 100, 500, 1000].map((num) => (
           <button
-            key={item.value}
-            onClick={() => addAmount(item.value)}
-            className="h-14 bg-gray-100 rounded-2xl text-lg font-medium active:bg-blue-100 active:scale-95 transition-all touch-manipulation text-gray-800 shadow-sm"
+            key={num}
+            type="button"
+            onClick={() => handleAddAmount(num)}
+            className="bg-gray-50 py-3.5 rounded-xl text-lg font-bold text-gray-700 shadow-sm border border-gray-100 hover:bg-gray-100 active:bg-blue-50 active:text-blue-600 active:scale-95 transition-all"
           >
-            {item.label}
+            +{num}
           </button>
         ))}
       </div>
       <button
-        onClick={clearAmount}
-        className="w-full h-12 mt-4 bg-red-50 text-red-500 rounded-2xl font-medium active:bg-red-100 active:scale-95 transition-all touch-manipulation"
+        type="button"
+        onClick={handleClear}
+        className="w-full bg-red-50/50 py-3 rounded-xl text-red-500 font-bold shadow-sm border border-red-50 hover:bg-red-50 active:bg-red-100 active:scale-[0.98] transition-all mb-6"
       >
         ล้างตัวเลข (Clear)
       </button>

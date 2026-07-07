@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import CategorySelector from '@/components/features/CategorySelector';
+import QuickAmount from '@/components/features/QuickAmount';
 import { Pencil, TrendingDown, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '@/components/ui/Button';
@@ -10,17 +11,6 @@ import Button from '@/components/ui/Button';
 export default function Home() {
   const { amount, type, categoryId, note, setAmount, setType, setNote, reset } = useTransactionStore();
   const [isSaving, setIsSaving] = useState(false);
-
-  // 🔹 ฟังก์ชันสำหรับปุ่มบวกเลขเร็ว (แบงก์/เหรียญ)
-  const handleAddAmount = (value: number) => {
-    const currentVal = Number(amount) || 0;
-    setAmount((currentVal + value).toString());
-  };
-
-  // 🔹 ฟังก์ชันสำหรับปุ่มล้างตัวเลข
-  const handleClear = () => {
-    setAmount('0');
-  };
 
   const handleSave = async () => {
     if (!amount || amount === '0' || Number(amount) <= 0) {
@@ -105,24 +95,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 🔹 3. แผงปุ่มบวกเงินด่วน (Quick Add) */}
-      <div className="grid grid-cols-3 gap-2.5 mb-3">
-        {[1, 2, 5, 10, 20, 50, 100, 500, 1000].map((num) => (
-          <button
-            key={num}
-            onClick={() => handleAddAmount(num)}
-            className="bg-gray-50 py-3.5 rounded-xl text-lg font-bold text-gray-700 shadow-sm border border-gray-100 hover:bg-gray-100 active:bg-blue-50 active:text-blue-600 active:scale-95 transition-all"
-          >
-            +{num}
-          </button>
-        ))}
-      </div>
-      <button
-        onClick={handleClear}
-        className="w-full bg-red-50/50 py-3 rounded-xl text-red-500 font-bold shadow-sm border border-red-50 hover:bg-red-50 active:bg-red-100 active:scale-[0.98] transition-all mb-6"
-      >
-        ล้างตัวเลข (Clear)
-      </button>
+      {/* 🔹 3. แผงปุ่มบวกเงินด่วน (เรียกใช้งาน Component ที่แยกไว้) */}
+      <QuickAmount />
 
       {/* 🔹 4. ส่วนเลือกหมวดหมู่ */}
       <div className="mb-4">
